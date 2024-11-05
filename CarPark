@@ -1,0 +1,79 @@
+//TODO
+//
+bool ValidateLicensePlate(string plateNumber)  // There must be a more optimised way to do this.. :/
+{
+    plateNumber = plateNumber.Replace(" ", "").ToUpper();
+    if (plateNumber.Length != 7) // Checks if the plate number is 7 digits long
+    {
+        return false;
+    }
+    if (!char.IsLetter(plateNumber[0]) || !char.IsLetter(plateNumber[1])) // Checks if first 2 characters are letters
+    {
+        return false;
+    }
+    if (!char.IsDigit(plateNumber[2]) || !char.IsDigit(plateNumber[3])) // Checks if second 2 characters are numbers
+    {
+        return false;
+    }
+    if (!char.IsLetter(plateNumber[4]) || !char.IsLetter(plateNumber[5]) || !char.IsLetter(plateNumber[6])) // Checks the final 3 characters are letters
+    {
+        return false;
+    }
+    return true;
+}
+void DisplayMenu()
+{
+    string licensePlate;
+    string choice;
+    int carTotal = 0;
+    bool exit = false;
+    while (!exit)
+    {
+        Console.WriteLine("==MENU==");
+        Console.WriteLine("1. Enter");
+        Console.WriteLine("2. Pay");
+        Console.WriteLine("3. Leave");
+        Console.WriteLine("4. Management");
+        Console.WriteLine("Q. Quit");
+        Console.Write("Enter choice: ");
+        choice = Console.ReadLine();
+        if (choice == "1" || choice == "enter" || choice == "Enter")
+        {
+            Console.WriteLine("Enter plate number");
+            licensePlate = Console.ReadLine();
+            ValidateLicensePlate(licensePlate);
+            licensePlate = licensePlate.ToUpper();
+            File.AppendAllText("LicensePlates.txt", licensePlate + Environment.NewLine);
+            carTotal = carTotal + 1;
+            Console.WriteLine("Plate recorded, you may enter");
+        }
+        if (choice == "2" || choice == "pay" || choice == "Pay")
+        {
+
+        }
+        if (choice == "3" || choice == "leave" || choice == "Leave")
+        {
+            Console.WriteLine("Enter plate number");
+            licensePlate = Console.ReadLine();
+            licensePlate = licensePlate.ToUpper();
+            string[] plateNumbers = File.ReadAllLines("LicensePlates.txt");
+            foreach (string plate in plateNumbers)
+            {
+                string plateNum = plate;
+                if (licensePlate == plateNum)
+                {
+                    Console.WriteLine("Plate registered, you may leave");
+                }
+            }
+        }
+        if (choice == "4" || choice == "management" || choice == "Management")
+        {
+
+        }
+        if (choice == "q" ||  choice == "Q" || choice == "quit" || choice == "Quit")
+        {
+            exit = true;
+        }
+    }
+}
+DisplayMenu();
