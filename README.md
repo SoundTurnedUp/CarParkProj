@@ -1,3 +1,1 @@
-This program has a few logic/syntax errors but im just so hellbent on learning new stuff/creating new stuff at the minute i'm gonna ignore them for the time being..
-
-I want to learn more stuff, come back to this when I can fix these issues and make everything easier and more efficient later (with more experience, this is a daunting fix haha)
+Finally rewrote this program in a way that isn't way overly difficult to fix, had alot of fun with this and was able to get it pretty neat and readable, might redo some of my other programs soon.
