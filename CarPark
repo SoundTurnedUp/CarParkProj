@@ -1,204 +1,310 @@
-//TODO
-// 2nd choice, figure out how to pay and etc
-// Defensive programming and error handling
-// Fix.
 
-DateTime timeEntered = DateTime.Now;
-while (true)
+class Program
 {
-    CheckManagement();
-}
-void CheckManagement()
-{
-    bool Management;
-    Console.WriteLine("1. Management use");
-    Console.WriteLine("2. Customer use");
-    Console.Write("Enter choice: ");
-    string choice = Console.ReadLine();
-    if (choice == "1" || choice == "Management" || choice == "management")
+    static void Main()
     {
-        int attemptsLeft = 3;
-        for (int attempts = 0; attempts < 3; attempts++)
+        Menu menu = new Menu();
+        menu.ShowMenu();
+    }
+}
+class DisplayHelper
+{
+    public static void ShowMessage(string message, int delayMilliseconds = 1500)
+    {
+        Console.Clear();
+        Console.WriteLine(message);
+        Thread.Sleep(delayMilliseconds);
+        Console.Clear();
+    }
+}
+class Menu
+{
+    public void ShowMenu()
+    {
+        string choice;
+        do
         {
-            Console.WriteLine("Enter admin password");
-            string adminPass = Console.ReadLine();
-            if (adminPass == "AdminPassword")
+            Console.Clear();
+            Console.WriteLine("= MENU =");
+            Console.WriteLine("1. Enter");
+            Console.WriteLine("2. Leave");
+            Console.WriteLine("3. Management");
+            Console.WriteLine("Q. Quit");
+            Console.Write("Choose an option: ");
+            choice = Console.ReadLine();
+            switch (choice.ToLower())
             {
-                Management = true;
-                DisplayMenu(Management);
+                case "1":
+                case "enter":
+                    Parking.EnterCarPark();
+                    break;
+                case "2":
+                case "leave":
+                    Parking.LeaveCarPark();
+                    break;
+                case "3":
+                case "management":
+                    Management management = new Management();
+                    management.ShowMenu();
+                    break;
+                case "q":
+                case "quit":
+                    DisplayHelper.ShowMessage("Quitting...");
+                    break;
+                default:
+                    DisplayHelper.ShowMessage("Invalid input, try again");
+                        break;
+            }
+        } while (choice.ToLower() != "q" || choice.ToLower() != "quit");
+    }
+}
+class Parking
+{
+    public static void EnterCarPark()
+    {
+        Console.Clear();
+        string plateNumber;
+        while (true)
+        {
+            Console.Write("Enter plate number: ");
+            plateNumber = Console.ReadLine();
+            plateNumber = plateNumber.Replace(" ", "").ToUpper();
+            if (!ValidateLicensePlate(plateNumber))
+            {
+                DisplayHelper.ShowMessage("Invalid plate number, try again");
+            }
+            else
+            {
+                break;
+            }
+        }
+        if (CheckCarCount())
+        {
+            FileHandlers.AddCarToCarPark(plateNumber);
+            DisplayHelper.ShowMessage("Plate recorded, you may enter");
+        }
+        else
+        {
+            DisplayHelper.ShowMessage("Car park is full, come back later.\nReturning to menu...");
+        }
+    }
+
+    public static void LeaveCarPark()
+    {
+        string plateNumber;
+        while (true)
+        {
+            Console.Clear();
+            Console.Write("Enter plate number: ");
+            plateNumber = Console.ReadLine();
+            plateNumber = plateNumber.Replace(" ", "").ToUpper();
+            if (FileHandlers.IsCarInCarPark(plateNumber))
+            {
                 break;
             }
             else
             {
-                attemptsLeft--;
-                Console.WriteLine("Password incorrect, try again");
-                Console.WriteLine(attemptsLeft + " Attempts left");
+                DisplayHelper.ShowMessage("Invalid plate number, try again");
             }
         }
+        double cost = FileHandlers.CalculateFeeForCar(plateNumber);
+        do
+        {
+            Console.Clear();
+            Console.WriteLine("Total cost is: £" + cost);
+            Console.Write("Insert payment: ");
+            double payment = Convert.ToDouble(Console.ReadLine());
+            cost -= payment;
+        } while (cost != 0);
+        DisplayHelper.ShowMessage("Plate removed, you may leave.");
+        FileHandlers.RemoveFromCarPark(plateNumber); 
     }
-    if (choice == "2" || choice == "Customer" || choice == "customer")
+    private static bool ValidateLicensePlate(string plateNumber)
     {
-        Management = false;
-        DisplayMenu(Management);
+        if (plateNumber.Length != 7) // checks if the plate number is 7 digits long
+        {
+            return false;
+        }
+        if (!char.IsLetter(plateNumber[0]) || !char.IsLetter(plateNumber[1])) // checks if first 2 characters are letters
+        {
+            return false;
+        }
+        if (!char.IsDigit(plateNumber[2]) || !char.IsDigit(plateNumber[3])) // checks if second 2 characters are numbers
+        {
+            return false;
+        }
+        if (!char.IsLetter(plateNumber[4]) || !char.IsLetter(plateNumber[5]) || !char.IsLetter(plateNumber[6])) // checks the final 3 characters are letters
+        {
+            return false;
+        }
+        return true;
     }
-    else
+    private static bool CheckCarCount()
     {
-        Console.WriteLine("Invalid input");
+        string[] cars = File.ReadAllLines("VehiclesInCarPark.txt");
+        return cars.Length <= 45;
     }
 }
-void EnterCarPark()
+class Management
 {
-    Console.WriteLine("Enter plate number");
-    string licensePlate = Console.ReadLine();
-    licensePlate = licensePlate.Replace(" ", "").ToUpper();
-    while (true)
+    public void ShowMenu()
     {
-        if (!ValidateLicensePlate(licensePlate))
+        if (AuthManagement())
         {
-            Console.WriteLine("Invalid plate number, try again");
+            string choice;
+            do
+            {
+                Console.Clear();
+                Console.WriteLine("= MANAGEMENT =");
+                Console.WriteLine("1. Current capacity");
+                Console.WriteLine("2. Total capacity");
+                Console.WriteLine("3. Current earnings");
+                Console.WriteLine("4. Total earnings");
+                Console.WriteLine("Q. Quit");
+                choice = Console.ReadLine();
+                switch (choice.ToLower())
+                {
+                    case "1":
+                        break;
+                    case "2":
+                        break;
+                    case "3":
+                        break;
+                    case "4":
+                        break;
+                    case "Q":
+                    case "Quit":
+                        break;
+                }
+            } while (choice.ToLower() != "q" || choice.ToLower() != "quit");
         }
         else
         {
-            break;
+            DisplayHelper.ShowMessage("Access denied.\nQuitting...");
         }
     }
-    if (CheckCarCount())
+
+    private bool AuthManagement()
     {
-        licensePlate = licensePlate;
-        licensePlate = licensePlate.Replace(" ", "").ToUpper();
-        string vehicleData = $"{licensePlate} {timeEntered}";
-        File.AppendAllText("VehiclesInCarPark.txt", vehicleData + Environment.NewLine);
-        Console.WriteLine("Plate recorded, you may enter");
-    }
-    else
-    {
-        Console.WriteLine("Car park is full");
-    }
-}
-void LeaveCarPark()
-{
-    Console.WriteLine("Enter plate number:");
-    string licensePlate = Console.ReadLine();
-    licensePlate = licensePlate.Replace(" ", "").ToUpper();
-    string tempFileName = "TempVehiclesInCarPark.txt";
-    bool plateFound = false;
-    DateTime entryTime = DateTime.MinValue;
-    using (StreamReader reader = new StreamReader("VehiclesInCarPark.txt"))
-    using (StreamWriter writer = new StreamWriter(tempFileName))
-    {
-        string line;
-        while ((line = reader.ReadLine()) != null)
+        Console.Clear();
+        for (int attemptsLeft = 3; attemptsLeft > 0; attemptsLeft--)
         {
-            string[] details = line.Split(' ');
-            if (details.Length < 2)
+            Console.Write("Enter admin password: ");
+            string adminPass = Console.ReadLine();
+            if (adminPass == "AdminPassword")
             {
-                writer.WriteLine(line);
-                continue;
-            }
-
-            string plateInFile = details[0];
-
-            if (!DateTime.TryParse(details[1], out DateTime entryDateTime))
-            {
-                Console.WriteLine("Error parsing date for entry: " + line);
-                writer.WriteLine(line);
-                continue;
-            }
-
-            if (plateInFile == licensePlate)
-            {
-                plateFound = true;
-                entryTime = entryDateTime;
+                return true;
             }
             else
             {
-                writer.WriteLine(line);
+                Console.Clear();
+                Console.WriteLine("Password incorrect, try again");
+                Console.WriteLine(attemptsLeft - 1 + " Attempts left");
             }
         }
-    }
-
-    if (plateFound)
-    {
-        DateTime exitTime = DateTime.Now;
-        TimeSpan duration = exitTime - entryTime;
-        int hours = duration.Hours;
-        int cost = hours * 5;
-        Console.WriteLine("Total cost is: £" + cost);
-        Console.Write("Insert payment: ");
-        int payment = Convert.ToInt32(Console.ReadLine());
-        File.Delete("VehiclesInCarPark.txt");
-        File.Move(tempFileName, "VehiclesInCarPark.txt");
-        Console.WriteLine("Plate removed, you may leave.");
-    }
-    else
-    {
-        File.Delete(tempFileName);
-        Console.WriteLine("Plate not found. Please check the number and try again.");
-    }
-}
-void ManageSystem()
-{
-
-}
-bool ValidateLicensePlate(string plateNumber)  // There must be a more optimised way to do this.. :/
-{
-    if (plateNumber.Length != 7) // Checks if the plate number is 7 digits long
-    {
         return false;
     }
-    if (!char.IsLetter(plateNumber[0]) || !char.IsLetter(plateNumber[1])) // Checks if first 2 characters are letters
-    {
-        return false;
-    }
-    if (!char.IsDigit(plateNumber[2]) || !char.IsDigit(plateNumber[3])) // Checks if second 2 characters are numbers
-    {
-        return false;
-    }
-    if (!char.IsLetter(plateNumber[4]) || !char.IsLetter(plateNumber[5]) || !char.IsLetter(plateNumber[6])) // Checks the final 3 characters are letters
-    {
-        return false;
-    }
-    return true;
 }
-bool CheckCarCount()
+class FileHandlers
 {
-    string[] cars = File.ReadAllLines("VehiclesInCarPark.txt");
-    return cars.Length <= 45;
-}
-void DisplayMenu(bool managementUse)
-{
-    string choice;
-    bool exit = false;
-    while (exit == false)
+    private static string filePath = "VehiclesInCarPark.txt";
+    public static bool IsCarInCarPark(string licensePlate)
     {
-        Console.WriteLine("==MENU==");
-        Console.WriteLine("1. Enter");
-        Console.WriteLine("2. Leave");
-        if (managementUse == true)
+        if (File.Exists(filePath))
         {
-            Console.WriteLine("4. Management");
-        }
-        Console.WriteLine("Q. Quit");
-        Console.Write("Enter choice: ");
-        choice = Console.ReadLine();
-        if (choice == "1" || choice == "enter" || choice == "Enter")
-        {
-            EnterCarPark();
-        }
-        if (choice == "2" || choice == "leave" || choice == "Leave")
-        {
-            LeaveCarPark();
-        }
-        if (managementUse == true)
-        {
-            if (choice == "4" || choice == "management" || choice == "Management")
+            var lines = File.ReadAllLines(filePath);
+            foreach (string line in lines)
             {
-                ManageSystem();
+                string[] parts = line.Split(',');
+                if (parts[0].Trim().Equals(licensePlate.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
             }
         }
-        if (choice == "q" ||  choice == "Q" || choice == "quit" || choice == "Quit")
+        return false;
+    }
+    public static void AddCarToCarPark(string licensePlate)
+    {
+        string entryTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        string entry = $"{licensePlate},{entryTime}"; 
+        File.AppendAllText(filePath, entry + Environment.NewLine); 
+    }
+    public static void RemoveFromCarPark(string licensePlate)
+    {
+        if (File.Exists(filePath))
         {
-            return;
+            var lines = File.ReadAllLines(filePath);
+            List<string> updatedLines = new List<string>();
+
+            foreach (string line in lines)
+            {
+                string[] parts = line.Split(',');
+                if (!parts[0].Trim().Equals(licensePlate.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    updatedLines.Add(line);
+                }
+            }
+
+            File.WriteAllLines(filePath, updatedLines); 
         }
+    }
+    public static DateTime? GetEntryTime(string licensePlate) 
+    {
+    if (File.Exists(filePath))
+        {
+            var lines = File.ReadAllLines(filePath);
+            foreach (string line in lines)
+            {
+                string[] parts = line.Split(',');
+                if (parts[0].Trim().Equals(licensePlate.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    return DateTime.Parse(parts[1].Trim());
+                }
+            }
+        }
+        return null;
+    }
+    public static double CalculateFeeForCar(string licensePlate)
+    {
+        DateTime? entryTime = GetEntryTime(licensePlate);
+        if (entryTime.HasValue)
+        {
+            DateTime exitTime = DateTime.Now;
+            return ParkingFeeCalculator.CalculateParkingFee(entryTime.Value, exitTime);
+        }
+        else
+        {
+            throw new Exception("Car not found in the car park.");
+        }
+    }
+}
+class ParkingFeeCalculator
+{
+    private const double FirstHourFee = 2.00;
+    private const double AdditionalHourlyFee = 1.50;
+    private const double DailyMaxFee = 20.00;
+
+    public static double CalculateParkingFee(DateTime entryTime, DateTime exitTime)
+    {
+        TimeSpan duration = exitTime - entryTime;
+        int fullDays = (int)duration.TotalDays;
+        double remainingHours = duration.TotalHours - (fullDays * 24);
+        double totalFee = 0;
+        totalFee += fullDays * DailyMaxFee;
+
+        if (remainingHours > 0)
+        {
+            if (remainingHours <= 1)
+            {
+                totalFee += FirstHourFee;
+            }
+            else
+            {
+                totalFee += FirstHourFee + ((int)Math.Ceiling(remainingHours) - 1) * AdditionalHourlyFee;
+            }
+            totalFee = Math.Min(totalFee, (fullDays + 1) * DailyMaxFee);
+        }
+        return totalFee;
     }
 }
