@@ -1,4 +1,6 @@
 
+using System.Net.Mail;
+
 class Program
 {
     static void Main()
@@ -44,8 +46,12 @@ class Menu
                     break;
                 case "3":
                 case "management":
-                    Management management = new Management();
-                    management.ShowMenu();
+                    Management managementMenu = new Management();
+                    bool stayInManagement = managementMenu.ShowMenu();
+                    if (!stayInManagement)
+                    {
+                        continue;
+                    }
                     break;
                 case "q":
                 case "quit":
@@ -116,8 +122,8 @@ class Parking
             double payment = Convert.ToDouble(Console.ReadLine());
             cost -= payment;
         } while (cost != 0);
+        FileHandlers.RemoveCarAndGenerateReceipt(plateNumber);
         DisplayHelper.ShowMessage("Plate removed, you may leave.");
-        FileHandlers.RemoveFromCarPark(plateNumber); 
     }
     private static bool ValidateLicensePlate(string plateNumber)
     {
@@ -147,7 +153,7 @@ class Parking
 }
 class Management
 {
-    public void ShowMenu()
+    public bool ShowMenu()
     {
         if (AuthManagement())
         {
@@ -156,31 +162,37 @@ class Management
             {
                 Console.Clear();
                 Console.WriteLine("= MANAGEMENT =");
-                Console.WriteLine("1. Current capacity");
-                Console.WriteLine("2. Total capacity");
-                Console.WriteLine("3. Current earnings");
-                Console.WriteLine("4. Total earnings");
+                Console.WriteLine("1. Capacity");
+                Console.WriteLine("2. Earnings");
+                Console.WriteLine("3. Search receipts");
                 Console.WriteLine("Q. Quit");
                 choice = Console.ReadLine();
                 switch (choice.ToLower())
                 {
                     case "1":
+                    case "capacity":
                         break;
                     case "2":
+                    case "earnings":
                         break;
                     case "3":
+                    case "search receipts":
                         break;
-                    case "4":
-                        break;
-                    case "Q":
-                    case "Quit":
+                    case "q":
+                    case "quit":
+                        DisplayHelper.ShowMessage("Quitting...");
+                        return false;
+                    default:
+                        DisplayHelper.ShowMessage("Invalid input, try again");
                         break;
                 }
-            } while (choice.ToLower() != "q" || choice.ToLower() != "quit");
+            } while (choice.ToLower() != "q" && choice.ToLower() != "quit");
+            return true;
         }
         else
         {
             DisplayHelper.ShowMessage("Access denied.\nQuitting...");
+            return false;
         }
     }
 
@@ -210,16 +222,12 @@ class FileHandlers
     private static string filePath = "VehiclesInCarPark.txt";
     public static bool IsCarInCarPark(string licensePlate)
     {
-        if (File.Exists(filePath))
+        string[] lines = File.ReadAllLines("VehiclesInCarPark.txt");
+        foreach (string line in lines)
         {
-            var lines = File.ReadAllLines(filePath);
-            foreach (string line in lines)
+            if (line.StartsWith(licensePlate + ","))
             {
-                string[] parts = line.Split(',');
-                if (parts[0].Trim().Equals(licensePlate.Trim(), StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
+                return true;
             }
         }
         return false;
@@ -251,16 +259,17 @@ class FileHandlers
     }
     public static DateTime? GetEntryTime(string licensePlate) 
     {
-    if (File.Exists(filePath))
+        string[] lines = File.ReadAllLines("VehiclesInCarPark.txt");
+        foreach (string line in lines)
         {
-            var lines = File.ReadAllLines(filePath);
-            foreach (string line in lines)
+            string[] parts = line.Split(',');
+            if (parts[0] == licensePlate)
             {
-                string[] parts = line.Split(',');
-                if (parts[0].Trim().Equals(licensePlate.Trim(), StringComparison.OrdinalIgnoreCase))
+                if (DateTime.TryParse(parts[1], out DateTime entryTime))
                 {
-                    return DateTime.Parse(parts[1].Trim());
+                    return entryTime;
                 }
+                break;
             }
         }
         return null;
@@ -276,6 +285,31 @@ class FileHandlers
         else
         {
             throw new Exception("Car not found in the car park.");
+        }
+    }
+    public static void RemoveCarAndGenerateReceipt(string licensePlate)
+    {
+        try
+        {
+            DateTime? entryTime = GetEntryTime(licensePlate);
+            if (entryTime.HasValue)
+            {
+                DateTime exitTime = DateTime.Now;
+                double fee = ParkingFeeCalculator.CalculateParkingFee(entryTime.Value, exitTime);
+                bool isPaid = true;
+                ReceiptHandler.GenerateReceipt(licensePlate, entryTime.Value, exitTime, fee, isPaid);
+
+                RemoveFromCarPark(licensePlate);
+                DisplayHelper.ShowMessage($"{licensePlate} has been removed from the car park");
+            }
+            else
+            {
+                DisplayHelper.ShowMessage("Vehicle not found in car park");
+            }
+        }
+        catch (Exception ex)
+        {
+            DisplayHelper.ShowMessage($"Error processing car exit: {ex.Message}");
         }
     }
 }
@@ -306,5 +340,48 @@ class ParkingFeeCalculator
             totalFee = Math.Min(totalFee, (fullDays + 1) * DailyMaxFee);
         }
         return totalFee;
+    }
+}
+class ReceiptHandler
+{
+    private const string ReceiptFolder = "Receipts";
+
+    public static void GenerateReceipt(string licensePlate, DateTime entryTime, DateTime exitTime, double totalCost, bool isPaid)
+    {
+        try
+        {
+            if (!Directory.Exists(ReceiptFolder))
+            {
+                Directory.CreateDirectory(ReceiptFolder);
+            }
+
+            string safeLicensePlate = SanitizeFileName(licensePlate);
+
+            TimeSpan duration = exitTime - entryTime;
+            string receipt = $"Receipt for {licensePlate}\n" +
+                             $"-----------------------------------\n" +
+                             $"Time entered: {entryTime}\n" +
+                             $"Time exited: {exitTime}\n" +
+                             $"Duration: {duration.Days} Days, {duration.Hours} Hours\n" +
+                             $"Total cost: {totalCost}\n" +
+                             $"Paid: {(isPaid ? "Yes" : "No")}\n" +
+                             $"-----------------------------------\n";
+
+            string filePath = Path.Combine(ReceiptFolder, $"{licensePlate}_Receipt.txt");
+            File.WriteAllText(filePath, receipt);
+            DisplayHelper.ShowMessage(receipt, 5000);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error generating receipt: {ex.Message}");
+        }
+    }
+    private static string SanitizeFileName(string input)
+    {
+        foreach (char c in Path.GetInvalidFileNameChars())
+        {
+            input = input.Replace(c.ToString(), "_");
+        }
+        return input;
     }
 }
