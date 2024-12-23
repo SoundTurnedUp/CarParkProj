@@ -1,6 +1,3 @@
-
-using System.Net.Mail;
-
 class Program
 {
     static void Main()
@@ -17,6 +14,11 @@ class DisplayHelper
         Console.WriteLine(message);
         Thread.Sleep(delayMilliseconds);
         Console.Clear();
+    }
+    public static void Pause()
+    {
+        Console.WriteLine("Press any key to continue...");
+        Console.ReadKey();
     }
 }
 class Menu
@@ -81,12 +83,20 @@ class Parking
             }
             else
             {
-                break;
+                if (FileHandlers.IsCarInCarPark(plateNumber))
+                {
+                    DisplayHelper.ShowMessage("This car is already in the car park.");
+                }
+                else
+                {
+                    break;
+                }
             }
         }
         if (CheckCarCount())
         {
             FileHandlers.AddCarToCarPark(plateNumber);
+            FileHandlers.IncrementTotalEnteredCount();
             DisplayHelper.ShowMessage("Plate recorded, you may enter");
         }
         else
@@ -123,7 +133,6 @@ class Parking
             cost -= payment;
         } while (cost != 0);
         FileHandlers.RemoveCarAndGenerateReceipt(plateNumber);
-        DisplayHelper.ShowMessage("Plate removed, you may leave.");
     }
     private static bool ValidateLicensePlate(string plateNumber)
     {
@@ -153,6 +162,8 @@ class Parking
 }
 class Management
 {
+    private const string ParkingFile = "VehiclesInCarPark.txt";
+    private const string ReceiptsFolder = "Receipts";
     public bool ShowMenu()
     {
         if (AuthManagement())
@@ -166,17 +177,22 @@ class Management
                 Console.WriteLine("2. Earnings");
                 Console.WriteLine("3. Search receipts");
                 Console.WriteLine("Q. Quit");
+                Console.Write("Choose an option: ");
                 choice = Console.ReadLine();
                 switch (choice.ToLower())
                 {
                     case "1":
                     case "capacity":
+                        ViewCapacity();
                         break;
                     case "2":
                     case "earnings":
+                        ViewEarnings();
                         break;
                     case "3":
                     case "search receipts":
+                    case "search":
+                        SearchReceipts();
                         break;
                     case "q":
                     case "quit":
@@ -194,6 +210,161 @@ class Management
             DisplayHelper.ShowMessage("Access denied.\nQuitting...");
             return false;
         }
+    }
+    private void ViewCapacity()
+    {
+        try
+        {
+            int totalCapacity = 45;
+            int currentCount = File.ReadAllLines(ParkingFile).Length;
+
+            int remainingSpaces = totalCapacity - currentCount;
+            int totalEntered = FileHandlers.GetTotalEnteredCount();
+
+            Console.Clear();
+            Console.WriteLine($"Current Occupancy: {currentCount}/{totalCapacity}");
+            Console.WriteLine($"Available Spaces: {remainingSpaces}");
+            Console.WriteLine($"Total Cars Entered: {totalEntered}");
+            DisplayHelper.Pause();
+        } catch (Exception ex) 
+        { 
+            Console.WriteLine($"Error retrieving capcity: {ex.Message}");
+            DisplayHelper.Pause();
+        }
+    }
+    private void ViewEarnings()
+    {
+        try
+        {
+            double totalEarnings = 0;
+
+            if (Directory.Exists(ReceiptsFolder))
+            {
+                string[] files = Directory.GetFiles(ReceiptsFolder, "*.txt");
+
+                if (files.Length == 0)
+                {
+                    DisplayHelper.ShowMessage("No receipts found.");
+                    return;
+                }
+                foreach (string file in files)
+                {
+                    string[] lines = File.ReadAllLines(file);
+
+                    foreach (string line in lines)
+                    {
+                        if (line.StartsWith("Total cost: £", StringComparison.OrdinalIgnoreCase))
+                        {
+                            string costText = line.Split('£')[1].Trim();
+                            if (double.TryParse(costText, out double cost))
+                            {
+                                totalEarnings += cost;
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                DisplayHelper.ShowMessage("Receipts folder not found");
+                return;
+            }
+
+            Console.Clear();
+            Console.WriteLine($"Total Earnings: £{totalEarnings}");
+            DisplayHelper.Pause();
+        } catch (Exception ex) 
+        { 
+            Console.WriteLine($"Error calculating earnings: {ex.Message}");
+            DisplayHelper.Pause();
+        }
+    }
+    private void SearchReceipts()
+    {
+        try
+        {
+            Console.Clear();
+            Console.WriteLine("Search receipts by:");
+            Console.WriteLine("1. License Plate");
+            Console.WriteLine("2. Date (DD-MM-YYYY)");
+            string searchChoice = Console.ReadLine();
+
+            string searchTerm = "";
+            bool searchByDate = false;
+
+            switch (searchChoice.ToLower())
+            {
+                case "1":
+                case "license plate":
+                    Console.Clear();
+                    Console.Write("Enter license plate: ");
+                    searchTerm = Console.ReadLine().Replace(" ", "").ToUpper();
+                    break;
+                case "2":
+                case "date":
+                    Console.Clear();
+                    Console.Write("Enter date (DD-MM-YYYY): ");
+                    searchTerm = Console.ReadLine();
+                    searchByDate = true;
+                    break;
+                default:
+                    DisplayHelper.ShowMessage("Invalid input, try again");
+                    return;
+            }
+
+            bool found = false;
+            if (Directory.Exists(ReceiptsFolder))
+            {
+                string[] files = Directory.GetFiles(ReceiptsFolder, "*.txt");
+
+                foreach (string file in files)
+                {
+                    string fileContent = File.ReadAllText(file);
+
+                    if (searchByDate)
+                    {
+                        string entryLine = fileContent.Split('\n').FirstOrDefault(line => line.StartsWith("Time entered:", StringComparison.OrdinalIgnoreCase));
+
+                        if (!string.IsNullOrEmpty(entryLine))
+                        {
+                            string dateEntered = entryLine.Replace("Time entered: ", "").Trim().Split(' ')[0].Replace("/", "-");
+
+                            if (dateEntered == searchTerm)
+                            {
+                                Console.Clear();
+                                Console.WriteLine($"Receipt found: {file}");
+                                Console.WriteLine(fileContent);
+                                found = true;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (fileContent.Contains($"Receipt for {searchTerm}", StringComparison.OrdinalIgnoreCase))
+                        {
+                            Console.Clear();
+                            Console.WriteLine($"Receipt found: {file}");
+                            Console.WriteLine(fileContent);
+                            found = true;
+                        }
+                    }
+                }
+                if (!found)
+                {
+                    Console.WriteLine("No receipts found matching the criteria.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Receipts folder not found.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error searching receipts: {ex.Message}");
+            DisplayHelper.Pause();
+        }
+        DisplayHelper.Pause();
     }
 
     private bool AuthManagement()
@@ -234,7 +405,7 @@ class FileHandlers
     }
     public static void AddCarToCarPark(string licensePlate)
     {
-        string entryTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        string entryTime = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss");
         string entry = $"{licensePlate},{entryTime}"; 
         File.AppendAllText(filePath, entry + Environment.NewLine); 
     }
@@ -298,7 +469,6 @@ class FileHandlers
                 double fee = ParkingFeeCalculator.CalculateParkingFee(entryTime.Value, exitTime);
                 bool isPaid = true;
                 ReceiptHandler.GenerateReceipt(licensePlate, entryTime.Value, exitTime, fee, isPaid);
-
                 RemoveFromCarPark(licensePlate);
                 DisplayHelper.ShowMessage($"{licensePlate} has been removed from the car park");
             }
@@ -306,10 +476,51 @@ class FileHandlers
             {
                 DisplayHelper.ShowMessage("Vehicle not found in car park");
             }
+        } catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing car exit: {ex.Message}");
+            DisplayHelper.Pause();
+        }
+    }
+    public static int GetTotalEnteredCount()
+    {
+        string countFile = "CarCount.txt";
+
+        try
+        {
+            if (File.Exists(countFile))
+            {
+                string content = File.ReadAllText(countFile);
+                if (int.TryParse(content, out int count))
+                {
+                    return count;
+                }
+            }
         }
         catch (Exception ex)
         {
-            DisplayHelper.ShowMessage($"Error processing car exit: {ex.Message}");
+            Console.WriteLine($"Error reading car count: {ex.Message}");
+        }
+        return 0;
+    }
+    public static void IncrementTotalEnteredCount()
+    {
+        string countFile = "CarCount.txt";
+
+        try
+        {
+            int count = 0;
+            if (File.Exists(countFile))
+            {
+                string content = File.ReadAllText(countFile);
+                int.TryParse(content, out count);
+            }
+            count++;
+            File.WriteAllText(countFile, count.ToString());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating car count: {ex.Message}");
         }
     }
 }
@@ -363,17 +574,18 @@ class ReceiptHandler
                              $"Time entered: {entryTime}\n" +
                              $"Time exited: {exitTime}\n" +
                              $"Duration: {duration.Days} Days, {duration.Hours} Hours\n" +
-                             $"Total cost: {totalCost}\n" +
+                             $"Total cost: £{totalCost}\n" +
                              $"Paid: {(isPaid ? "Yes" : "No")}\n" +
                              $"-----------------------------------\n";
 
             string filePath = Path.Combine(ReceiptFolder, $"{licensePlate}_Receipt.txt");
             File.WriteAllText(filePath, receipt);
-            DisplayHelper.ShowMessage(receipt, 5000);
-        }
-        catch (Exception ex)
+            Console.WriteLine(receipt);
+            DisplayHelper.Pause();
+        } catch (Exception ex)
         {
             Console.WriteLine($"Error generating receipt: {ex.Message}");
+            DisplayHelper.Pause();
         }
     }
     private static string SanitizeFileName(string input)
