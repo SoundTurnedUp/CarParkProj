@@ -63,7 +63,7 @@ class Menu
                     DisplayHelper.ShowMessage("Invalid input, try again");
                         break;
             }
-        } while (choice.ToLower() != "q" || choice.ToLower() != "quit");
+        } while (choice.ToLower() != "q" && choice.ToLower() != "quit");
     }
 }
 class Parking
