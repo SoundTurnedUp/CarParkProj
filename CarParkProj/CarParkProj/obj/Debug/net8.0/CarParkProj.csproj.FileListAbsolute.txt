@@ -1,0 +1,14 @@
+C:\Users\manny\source\repos\CarParkProj\CarParkProj\bin\Debug\net8.0\CarParkProj.exe
+C:\Users\manny\source\repos\CarParkProj\CarParkProj\bin\Debug\net8.0\CarParkProj.deps.json
+C:\Users\manny\source\repos\CarParkProj\CarParkProj\bin\Debug\net8.0\CarParkProj.runtimeconfig.json
+C:\Users\manny\source\repos\CarParkProj\CarParkProj\bin\Debug\net8.0\CarParkProj.dll
+C:\Users\manny\source\repos\CarParkProj\CarParkProj\bin\Debug\net8.0\CarParkProj.pdb
+C:\Users\manny\source\repos\CarParkProj\CarParkProj\obj\Debug\net8.0\CarParkProj.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\manny\source\repos\CarParkProj\CarParkProj\obj\Debug\net8.0\CarParkProj.AssemblyInfoInputs.cache
+C:\Users\manny\source\repos\CarParkProj\CarParkProj\obj\Debug\net8.0\CarParkProj.AssemblyInfo.cs
+C:\Users\manny\source\repos\CarParkProj\CarParkProj\obj\Debug\net8.0\CarParkProj.csproj.CoreCompileInputs.cache
+C:\Users\manny\source\repos\CarParkProj\CarParkProj\obj\Debug\net8.0\CarParkProj.dll
+C:\Users\manny\source\repos\CarParkProj\CarParkProj\obj\Debug\net8.0\refint\CarParkProj.dll
+C:\Users\manny\source\repos\CarParkProj\CarParkProj\obj\Debug\net8.0\CarParkProj.pdb
+C:\Users\manny\source\repos\CarParkProj\CarParkProj\obj\Debug\net8.0\CarParkProj.genruntimeconfig.cache
+C:\Users\manny\source\repos\CarParkProj\CarParkProj\obj\Debug\net8.0\ref\CarParkProj.dll
